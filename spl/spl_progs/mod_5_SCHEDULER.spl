@@ -1,6 +1,11 @@
 breakpoint;
+
 alias currPID R0;
 alias curr_process_table R1;
+
+alias id R2;
+alias newPID R3;
+alias new_process_table R4;
 
 currPID = [SYSTEM_STATUS_TABLE + 1];
 multipush (BP);
@@ -9,22 +14,20 @@ curr_process_table = PROCESS_TABLE + currPID*16;
 [curr_process_table + 14] = PTBR;
 [curr_process_table + 15] = PTLR;
 
-alias counter R2;
-alias newPID R3;
-alias new_process_table R4;
 
-counter = currPID + 1;
+id = currPID + 1;
 newPID = 0;
-while(counter != currPID) do
-	if(counter==16) then
-		counter = 1;
+while(id != currPID) do
+	if(id==16) then
+		id = 1;
 	endif;
-	new_process_table = PROCESS_TABLE + counter*16;
-	if([new_process_table + 4]==CREATED || [new_process_table + 4]==READY) then
-		newPID = counter;
+	new_process_table = PROCESS_TABLE + id*16;
+	if([new_process_table + 4]==CREATED || [new_process_table + 4]==READY)
+	then
+		newPID = id;
 		break;
 	endif;
-	counter = counter + 1;
+	id = id + 1;
 endwhile;
 
 if(newPID == 0 && [curr_process_table + 4]==READY) then

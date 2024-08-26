@@ -12,6 +12,8 @@ loadi(70,12);
 SP = 82*512-1; //setting sp to user page area of idle process
 
 call BOOT_MODULE;
+
+
 //setting page table for idle;
 
 PTBR=PAGE_TABLE_BASE;  //as PID of idle process is 0

@@ -1,6 +1,6 @@
 alias currPID R0;
 alias curr_process_table R1;
-alias counter R2;
+alias id R2;
 
 currPID = [SYSTEM_STATUS_TABLE  + 1];
 curr_process_table = PROCESS_TABLE + currPID*16; 
@@ -9,15 +9,15 @@ curr_process_table = PROCESS_TABLE + currPID*16;
 [curr_process_table + 4] = TERMINATED;
 SP = [curr_process_table + 11]*512;
 
-counter = 1;
-while(counter < 16) do
-	if([PROCESS_TABLE + counter*16 + 4] != TERMINATED) then
+id = 1;
+while(id < 16) do
+	if([PROCESS_TABLE + id*16 + 4] != TERMINATED) then
 		break;
 	endif;
-	counter = counter + 1;
+	id = id + 1;
 endwhile;
 
-if(counter == 16) then
+if(id == 16) then
 	halt;
 else
 	call MOD_5;

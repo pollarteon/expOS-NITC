@@ -1,23 +1,30 @@
 int main(){
 decl
-	int i, j, x, flag;
+	int num, i, x, notprime;
 enddecl
 
 begin
-	i=2;
-	while(i<=100) do
-		flag = 0;
-		j = 2;
-		while((j*j) <= i) do
-			if((i%j)==0) then
-				flag = 1;
+	num=2;
+	while(num<=100) do
+		
+		i = 2;
+		notprime = 0;
+		
+		while((i*i) <= i) 
+		do
+			if((num%i)==0) 
+			then
+				notprime = 1;
 			endif;
-			j = j + 1;
+			i = i + 1;
 		endwhile;
-		if(flag == 0) then
-			x = exposcall("Write", -2, i);
+
+		if(notprime == 0) 
+		then
+			x = exposcall("Write", -2, num);
 		endif;
-		i = i + 1;
+		num = num + 1;
+		
 	endwhile;
 	return 0;
 end

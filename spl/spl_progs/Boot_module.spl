@@ -7,26 +7,36 @@ loadi(17, 30);
 loadi(4, 17);
 loadi(5, 18);
 
-//load library code from disk to memory
-loadi(63, 13);
-loadi(64, 14);
-
-//loading init from disk to mem
+//loading init process
 loadi(65, 7);
 loadi(66, 8);
 
-//loading int_10 from disk to mem
+//loading int_10 handler
 loadi(22, 35);
 loadi(23, 36);
 
-//loading execp_handler to mem
+//loading exeption_handler to mem
 loadi(2, 15);
 loadi(3, 16);
 
+//loading library code 
+loadi(63, 13);
+loadi(64, 14);
 
-//load mod_5 SCHEDULER
+
+//loading  SCHEDULER(module 5)
 loadi(50, 63);
 loadi(51, 64);
+
+//loading module 0 (Resource module)
+loadi(40,53);
+loadi(41,54);
+
+//loading module 4( device manager module)
+loadi(48,61);
+loadi(49,62);
+
+
 
 PTBR = PAGE_TABLE_BASE+20;
 PTLR=10;
@@ -170,18 +180,18 @@ PTLR = 10;
 //setting unused process table entries as terminated..
 
 //uncomment the next line to run only even(exec) and odd(init process)
-//[PROCESS_TABLE + 48 + 4] = TERMINATED;
-[PROCESS_TABLE + 64 + 4] = TERMINATED;
-[PROCESS_TABLE + 80 + 4] = TERMINATED;
-[PROCESS_TABLE + 96 + 4] = TERMINATED;
-[PROCESS_TABLE + 112 + 4] = TERMINATED;
-[PROCESS_TABLE + 128 + 4] = TERMINATED;
-[PROCESS_TABLE + 144 + 4] = TERMINATED;
-[PROCESS_TABLE + 160 + 4] = TERMINATED;
-[PROCESS_TABLE + 176 + 4] = TERMINATED;
-[PROCESS_TABLE + 192 + 4] = TERMINATED;
-[PROCESS_TABLE + 208 + 4] = TERMINATED;
-[PROCESS_TABLE + 224 + 4] = TERMINATED;
-[PROCESS_TABLE + 240 + 4] = TERMINATED;
+[PROCESS_TABLE + 3*16 + 4] = TERMINATED;
+[PROCESS_TABLE + 4*16 + 4] = TERMINATED;
+[PROCESS_TABLE + 5*16 + 4] = TERMINATED;
+[PROCESS_TABLE + 6*16 + 4] = TERMINATED;
+[PROCESS_TABLE + 7*16 + 4] = TERMINATED;
+[PROCESS_TABLE + 8*16 + 4] = TERMINATED;
+[PROCESS_TABLE + 9*16 + 4] = TERMINATED;
+[PROCESS_TABLE + 10*16 + 4] = TERMINATED;
+[PROCESS_TABLE + 11*16 + 4] = TERMINATED;
+[PROCESS_TABLE + 12*16 + 4] = TERMINATED;
+[PROCESS_TABLE + 13*16 + 4] = TERMINATED;
+[PROCESS_TABLE + 14*16 + 4] = TERMINATED;
+[PROCESS_TABLE + 15*16 + 4] = TERMINATED;
 
 return;
