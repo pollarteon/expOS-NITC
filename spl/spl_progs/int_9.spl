@@ -1,76 +1,88 @@
 alias userSP R0; 
-userSP=SP;
+userSP=SP; //Saving value of user stack
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP; //Saving sp value in UPTR field
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1; //Setting up kernel stack
 
-[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP; 
-SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 9; //Setting mode flag to system call no of exec
 
-//MODE Flag
-[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 9; // 9 is syscall number of exec
+//accessing the file name from user stack(Since file name is in (arg 1) it is at (sp-4))
+alias physicalPageNum R1;
+alias offset R2;
+alias fileNameAddr R3;
+physicalPageNum = [PTBR + 2 * ((userSP - 4)/ 512)];
+offset = (userSP - 4) % 512;
+fileNameAddr = (physicalPageNum * 512) + offset;
+alias fileName R4;
+fileName=[fileNameAddr];
 
-alias physicaladdrFile R1;
-alias fileName R2;
-physicaladdrFile = ([PTBR + (2 *(userSP-4)/512)]*512)+((userSP-4)%512);
-fileName = [physicaladdrFile];
+alias check R5;
+alias i R6;
+alias inode_index R7;
 
-alias valid R3;
-alias i R4;
-alias inodeIndex R5;
-
+//extracting inode table entry number of entered file name
 i=0;
-valid=0;
-
+check=0;
 while(i<MAX_FILE_NUM) do
-    //checking for the inode table entry with the file name and xexe file type
-    if([INODE_TABLE+16*i + 1]==fileName) then
-        valid =1;
-        inodeIndex =i;
-        break;
-    endif;
-    i = i+1;
+
+	if([INODE_TABLE+ 16*i + 1]==fileName) then
+		check=1;
+		inode_index=i;
+		break;
+	endif;
+	i=i+1;
 endwhile;
 
+//Failure case(File not found)
+if(check==0) then
+	
+	//Setting return value as -1 (Failure)
+	alias physicalAddrRetVal R8;
+	physicalAddrRetVal = ([PTBR + 2 * ((userSP - 1) / 512)] * 512) + ((userSP - 1) % 512);
+	[physicalAddrRetVal] = -1;
 
-//no file in inode Table
-if(valid==0) then
-    //return value -1
-    alias physicalAddrRetVal R6;
-    physicalAddrRetVal = [PTBR + 2*((userSP-1)/512)]*512+((userSP-1)%512);
-    [physicalAddrRetVal]=-1;
-
-    [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=0; //resetting mode flag
-
-    SP=userSP;
-    ireturn;
+	//reset mode flag (0 indicates process is in user mode).
+	[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+	
+	//changing back to user stack
+	SP = userSP;
+	//print "FileNotFound!";
+	ireturn;
 endif;
 
 
-//invoking exit_process(funNum = 3) in Process Manager module
-alias exitProcessPID R7;
-exitProcessPID = [SYSTEM_STATUS_TABLE+1];
+//Calling "Exit Process" function
+alias PID_exit R10;
+PID_exit=[SYSTEM_STATUS_TABLE + 1];
+//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15);
 backup;
-R1 = 3;
-R2 = [SYSTEM_STATUS_TABLE+1];
-call MOD_1; //process Manager module
+R1=3; //Function number of exit in process manager module(Module 1)
+R2=[SYSTEM_STATUS_TABLE + 1];
+call MOD_1;
+
 restore;
-
-
-//reclaiming the userAreaPage
+//multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15);
 
 alias userAreaPageNo R8;
-userAreaPageNo =  [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11];
 
+userAreaPageNo=[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+11];
+
+//Reclaiming the same page by incrementing the memory free list entry of user area page
 [MEMORY_FREE_LIST+userAreaPageNo]=[MEMORY_FREE_LIST+userAreaPageNo]+1;
-[SYSTEM_STATUS_TABLE+2] = [SYSTEM_STATUS_TABLE+2]-1;
 
+[SYSTEM_STATUS_TABLE+2]=[SYSTEM_STATUS_TABLE+2]-1;
 
+//Setting SP to top of kernel stack
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
-[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+4]=RUNNING;
-[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+7]=inodeIndex;
 
+//Set STATE field to RUNNING
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 4]=RUNNING;
 
-//allocating new pages and page entries for new Process
+//Update Inode Index Field
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 7]=inode_index;
 
-PTBR = PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE+1]*20;
+//Allocating new pages and setting the page table entries for the new process
+
+PTBR=PAGE_TABLE_BASE+[SYSTEM_STATUS_TABLE+1]*20;
 
 //Library
 [PTBR+0]=63;
@@ -78,67 +90,82 @@ PTBR = PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE+1]*20;
 [PTBR+2]=64;
 [PTBR+3]="0100";
 
-
-//heap
-
+//multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15);
 backup;
-
-R1 = 1; //function num for get free page function
-call MOD_2; //memory manager Module
+//Heap
+R1=1;
+call MOD_2;
 [PTBR+4]=R0;
 [PTBR+5]="0110";
 restore;
+
 backup;
-R1 = 1; 
-call MOD_2 ;
+R1=1;
+call MOD_2;
 [PTBR+6]=R0;
 [PTBR+7]="0110";
 restore;
 
-//stack
-
 backup;
-R1 = 1;
+//Stack
+R1=1;
 call MOD_2;
-[PTBR+16] = R0;
+[PTBR+16]=R0;
 [PTBR+17]="0110";
 restore;
+
 backup;
-R1 = 1;
+R1=1;
 call MOD_2;
 [PTBR+18]=R0;
 [PTBR+19]="0110";
 restore;
 
-//Code Pages loading from disk to memory
+backup;
 
-alias j R10;
-j =0;
-while(j<4) do
-    if([INODE_TABLE+(16*inodeIndex)+8+j]!=-1) then
-        backup;
-        R1 =1;
-        call MOD_2;    
-        [PTBR+8+(2*j)] = R0;
-        [PTBR+8+(2*j+1)]="0100";
-        restore;
+alias j R11;
+alias k R12;
 
-        backup;
-        R1 =2;
-        R2 = [SYSTEM_STATUS_TABLE+1];
-        R3 = [PTBR+8+(2*j)];
-        R4 = [INODE_TABLE+(16*inodeIndex)+(8+j)];
-        call MOD_4;
-        restore;
+j=8;
+k=8;
 
-        //loadi([PTBR+8+(2*j)],[INODE_TABLE+(16*inodeIndex)+(8+j)]);
+while(j<=11) do
 
-    endif;
-  j = j+1;
+	if([INODE_TABLE+ 16*inode_index + j] != -1) then
+	
+		backup;
+		R1=1; //Function number for get free page in memory manager module
+		call MOD_2; //calling memory manager module
+		[PTBR+k]=R0; //storing codein returned free page 
+		[PTBR+k+1]="0100"; //Permissions for code page
+		restore;
+		//loadi([PTBR+k], [INODE_TABLE+ 16*inode_index + j]); /////////
+		//Calling Disk Load function instead of "LOADI"
+
+		backup;
+		R1=2; //Function number of Disk load in device manager module
+		R2=[SYSTEM_STATUS_TABLE+1]; //argument 1 == PID of process
+		R3=[PTBR+k]; //argument 2 ==  page number to where we should load the disk block 
+		R4=[INODE_TABLE+ 16*inode_index + j]; //argument 3 == disk block number to be loaded
+		call MOD_4; //Calling Device manager module for disk load function
+		restore;
+		
+	endif;
+
+	j=j+1;
+	k=k+2;
 endwhile;
 
+restore;
 
-[[PTBR+16]*512] = [[PTBR+8]*512+1]; // entry point given to the top of userstack
-SP = 8*512;
-[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=0;
+
+//Setting top of SP to entry point
+[[PTBR+16]*512] = [[PTBR+8]*512+1];
+
+//changing back to user stack
+SP=8*512;
+
+//reset mode flag (0 indicates process is in user mode).
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+
 ireturn;

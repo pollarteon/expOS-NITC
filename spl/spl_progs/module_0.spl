@@ -1,20 +1,22 @@
 //RESOURCE MANAGER MODULE
 
 alias functionNum R1; //retriving the function number
-alias currentPID R2; //PID of current process or process which has acquired the terminal
+alias currentPID R2; //PID of current process
 
-if(functionNum==3) then //acquire disk
 
-	while([DISK_STATUS_TABLE]==1)do
-		[PROCESS_TABLE+currentPID*16+4]=WAIT_DISK;
+if(functionNum==3) then //Acquire Disk
+
+	while( ([DISK_STATUS_TABLE] ) == 1) do
+		[ (PROCESS_TABLE + (currentPID * 16)) + 4 ] = WAIT_DISK;
+		
 		backup;
 		call MOD_5;
 		restore;
+		
 	endwhile;
 
-	[DISK_STATUS_TABLE]=1;
-	[DISK_STATUS_TABLE+4]=currentPID;
-	
+	[DISK_STATUS_TABLE]=1; //setting status of disk status table to 1
+	[DISK_STATUS_TABLE+4]=currentPID; //setting PID of process in disk status table
 	return;
 
 endif;
@@ -43,7 +45,7 @@ if(functionNum==9) then //Release terminal
 		[TERMINAL_STATUS_TABLE] = 0;
 		alias i R6;
 		i=0;
-	
+		//waking up all the processes which are in WAIT_TERMINAL state
 		while(i<=15) do
 			if([PROCESS_TABLE+16*i+4] == WAIT_TERMINAL) then
 				[PROCESS_TABLE+16*i+4]=READY;
@@ -60,6 +62,7 @@ if(functionNum==9) then //Release terminal
 		return;
 
 	endif;
+	else
+		return;
 
 endif;
-

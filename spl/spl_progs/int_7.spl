@@ -1,4 +1,4 @@
-
+//set mode flag of cureent process to 5(write system call)
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 5;
 
 //save user stack pointer
@@ -40,7 +40,7 @@ else
 	R3=word; //word to be written
 
 	call MOD_4; //calling device manager module (module 4)
-	
+	//Prints the word(writing it instead of "print word;")
 
 	multipop(R0, R1, R2, R3, R4, R5, R6);
 

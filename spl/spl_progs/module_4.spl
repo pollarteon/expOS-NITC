@@ -1,71 +1,71 @@
 //DEVICE MANAGER MODULE
- 
+
 alias functionNum R1;
 alias currentPID R2;
 
+if(functionNum==2) then //Disk load function
 
-if(functionNum==2)then //disk load function
+	alias page_no R3;
+	alias block_no R4;
 
-	alias pageNo R3;
-	alias blockNo R4;
+	//Acquiring disk
 	backup;
-	R1 = 3;
-	R2 = currentPID;
-	call MOD_0; //calling acquire disk function in resource manager module
+	R1=3;
+	R2=currentPID;
+	call MOD_0;
 	restore;
+
+	//Setting up disk status table 
+
+	[DISK_STATUS_TABLE+1]=0; //load 
+	[DISK_STATUS_TABLE+2]=page_no; 
+	[DISK_STATUS_TABLE+3]=block_no; 
 
 	
-	[DISK_STATUS_TABLE+1] =0; //setting load
-	[DISK_STATUS_TABLE+2] =pageNo;
-	[DISK_STATUS_TABLE+3]=blockNo;
+	load(page_no,block_no);
+	
+	[PROCESS_TABLE + (currentPID*16) + 4] = WAIT_DISK;	
 
-	load(pageNo,blockNo);
 
-	[PROCESS_TABLE+currentPID*16+4]=WAIT_DISK;
-	breakpoint;	
 	backup;
-	call MOD_5;
+	call MOD_5; //Invoking Scheduler
 	restore;
-	breakpoint;
+
 	return;
+
 endif;
 
 if(functionNum==3) then //Terminal write function
-
 	
 	backup;
 	R1=8;
 	R2=currentPID;
 	call MOD_0;
 	restore;
-	
-	//Terminal Acquired
+
 
 	alias word R3;
 	print word;
 
-	//Releasing terminal
 
 
 	backup;
 	R1=9;
 	R2=currentPID;
 	call MOD_0;
-	
 	restore;
 
 	return;
 
 else
-	//Terminal read function
-	if(functionNum==4) then
 
+	if(functionNum==4) then //terminal Read
+	
 		
 		backup;
 		R1=8;
 		R2=currentPID;
 		call MOD_0;
-		
 		restore;
 		
 		//Terminal Acquired
@@ -73,12 +73,9 @@ else
 		read;
 		[PROCESS_TABLE + (currentPID*16) + 4] = WAIT_TERMINAL;
 
-		
-		
+		//Invoking context switch module
 		backup;
 		call MOD_5; //Invoking Scheduler
-		
-		
 		restore;
 
 		alias physicalPageNum R4;
@@ -97,8 +94,3 @@ else
 
 endif;
 return;
-
-
-
-
-
