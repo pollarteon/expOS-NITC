@@ -1,0 +1,144 @@
+alias userSP R0; 
+userSP=SP;
+
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP; 
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+//MODE Flag
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 9; // 9 is syscall number of exec
+
+alias physicaladdrFile R1;
+alias fileName R2;
+physicaladdrFile = ([PTBR + (2 *(userSP-4)/512)]*512)+((userSP-4)%512);
+fileName = [physicaladdrFile];
+
+alias valid R3;
+alias i R4;
+alias inodeIndex R5;
+
+i=0;
+valid=0;
+
+while(i<MAX_FILE_NUM) do
+    //checking for the inode table entry with the file name and xexe file type
+    if([INODE_TABLE+16*i + 1]==fileName) then
+        valid =1;
+        inodeIndex =i;
+        break;
+    endif;
+    i = i+1;
+endwhile;
+
+
+//no file in inode Table
+if(valid==0) then
+    //return value -1
+    alias physicalAddrRetVal R6;
+    physicalAddrRetVal = [PTBR + 2*((userSP-1)/512)]*512+((userSP-1)%512);
+    [physicalAddrRetVal]=-1;
+
+    [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=0; //resetting mode flag
+
+    SP=userSP;
+    ireturn;
+endif;
+
+
+//invoking exit_process(funNum = 3) in Process Manager module
+alias exitProcessPID R7;
+exitProcessPID = [SYSTEM_STATUS_TABLE+1];
+backup;
+R1 = 3;
+R2 = [SYSTEM_STATUS_TABLE+1];
+call MOD_1; //process Manager module
+restore;
+
+
+//reclaiming the userAreaPage
+
+alias userAreaPageNo R8;
+userAreaPageNo =  [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11];
+
+[MEMORY_FREE_LIST+userAreaPageNo]=[MEMORY_FREE_LIST+userAreaPageNo]+1;
+[SYSTEM_STATUS_TABLE+2] = [SYSTEM_STATUS_TABLE+2]-1;
+
+
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+4]=RUNNING;
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+7]=inodeIndex;
+
+
+//allocating new pages and page entries for new Process
+
+PTBR = PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE+1]*20;
+
+//Library
+[PTBR+0]=63;
+[PTBR+1]="0100";
+[PTBR+2]=64;
+[PTBR+3]="0100";
+
+
+//heap
+
+backup;
+
+R1 = 1; //function num for get free page function
+call MOD_2; //memory manager Module
+[PTBR+4]=R0;
+[PTBR+5]="0110";
+restore;
+backup;
+R1 = 1; 
+call MOD_2 ;
+[PTBR+6]=R0;
+[PTBR+7]="0110";
+restore;
+
+//stack
+
+backup;
+R1 = 1;
+call MOD_2;
+[PTBR+16] = R0;
+[PTBR+17]="0110";
+restore;
+backup;
+R1 = 1;
+call MOD_2;
+[PTBR+18]=R0;
+[PTBR+19]="0110";
+restore;
+
+//Code Pages loading from disk to memory
+
+alias j R10;
+j =0;
+while(j<4) do
+    if([INODE_TABLE+(16*inodeIndex)+8+j]!=-1) then
+        backup;
+        R1 =1;
+        call MOD_2;    
+        [PTBR+8+(2*j)] = R0;
+        [PTBR+8+(2*j+1)]="0100";
+        restore;
+
+        backup;
+        R1 =2;
+        R2 = [SYSTEM_STATUS_TABLE+1];
+        R3 = [PTBR+8+(2*j)];
+        R4 = [INODE_TABLE+(16*inodeIndex)+(8+j)];
+        call MOD_4;
+        restore;
+
+        //loadi([PTBR+8+(2*j)],[INODE_TABLE+(16*inodeIndex)+(8+j)]);
+
+    endif;
+  j = j+1;
+endwhile;
+
+
+[[PTBR+16]*512] = [[PTBR+8]*512+1]; // entry point given to the top of userstack
+SP = 8*512;
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=0;
+ireturn;

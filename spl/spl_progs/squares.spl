@@ -1,8 +1,0 @@
-alias num R0;
-alias square R1;
-num = 1;
-while(num<=20) do
-	square = num *num;
-	print square;
-	num = num+1;
-endwhile;

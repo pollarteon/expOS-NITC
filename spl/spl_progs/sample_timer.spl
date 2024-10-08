@@ -1,28 +1,18 @@
-[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 13] = SP;
-SP = [PROCESS_TABLE+([SYSTEM_STATUS_TABLE + 1]*16) + 11]*512 - 1;
+
+//Switching to kernel stack
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16)+13]=SP;
+SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11]*512-1;
+
 backup;
 
-[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 4] = READY;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16)+4]=READY; //Changing state of outgoing process to READY
 
-alias counter R0;
-counter = 0;
-while(counter < 16) do
-	if([PROCESS_TABLE + 16*counter + 4] != TERMINATED) then
-		[PROCESS_TABLE + 16*counter + 0] = [PROCESS_TABLE + 16*counter + 0] + 1; 
-	endif;
-	counter = counter + 1;
-endwhile;
-
-breakpoint;
-call MOD_5;
-breakpoint;
+call MOD_5; //Invoking Scheduler
 
 restore;
 
-
-SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 13];
-[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 9] = 0;
-
-//print "timer!";
+SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13]; //Setting sp to top of user stack
+[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+9] = 0; //Setting mode flag to 0
 
 ireturn;
+

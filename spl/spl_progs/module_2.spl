@@ -1,0 +1,53 @@
+//MEMORY MANAGER MODULE
+
+alias functionNum R1;
+alias PageNumber R2;
+alias i R3;
+
+if(functionNum==1)then //get free Page function
+
+    [SYSTEM_STATUS_TABLE+3] = [SYSTEM_STATUS_TABLE+3]+1; //increment WAIT_MEM_COUNT
+   
+    while([SYSTEM_STATUS_TABLE+2]==0)do
+        [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+4] = WAIT_MEM;
+        backup;
+        call MOD_5;
+        restore;
+    endwhile;
+
+    [SYSTEM_STATUS_TABLE+3]= [SYSTEM_STATUS_TABLE+3]-1;
+    [SYSTEM_STATUS_TABLE+2]=[SYSTEM_STATUS_TABLE+2]-1; //mem free count
+
+    
+    i =0;
+    while(i<MAX_MEM_PAGE) do
+        if([MEMORY_FREE_LIST+i]==0) then
+            [MEMORY_FREE_LIST+i]=1;
+            R0 = i; // free page no is stored in R0;
+            return;
+        endif;
+        i = i+1;
+    endwhile;
+
+endif;
+
+
+if(functionNum==2)then //Release Page function 
+
+    i =0;
+    [MEMORY_FREE_LIST+R2] = [MEMORY_FREE_LIST+R2]-1;
+
+    if([MEMORY_FREE_LIST+R2]==0)then
+        [SYSTEM_STATUS_TABLE+2] = [SYSTEM_STATUS_TABLE+2]+1; //increment mem free count;
+    endif;
+
+    //updating status to READY from WAIT_MEM
+    while(i<16) do
+        if([PROCESS_TABLE+i*16+4]==WAIT_MEM)then
+            [PROCESS_TABLE+i*16+4]=READY;
+        endif;
+        i = i+1;
+    endwhile;
+    return;
+
+endif;

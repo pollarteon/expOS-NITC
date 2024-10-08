@@ -1,0 +1,104 @@
+//DEVICE MANAGER MODULE
+ 
+alias functionNum R1;
+alias currentPID R2;
+
+
+if(functionNum==2)then //disk load function
+
+	alias pageNo R3;
+	alias blockNo R4;
+	backup;
+	R1 = 3;
+	R2 = currentPID;
+	call MOD_0; //calling acquire disk function in resource manager module
+	restore;
+
+	
+	[DISK_STATUS_TABLE+1] =0; //setting load
+	[DISK_STATUS_TABLE+2] =pageNo;
+	[DISK_STATUS_TABLE+3]=blockNo;
+
+	load(pageNo,blockNo);
+
+	[PROCESS_TABLE+currentPID*16+4]=WAIT_DISK;
+	breakpoint;	
+	backup;
+	call MOD_5;
+	restore;
+	breakpoint;
+	return;
+endif;
+
+if(functionNum==3) then //Terminal write function
+
+	
+	backup;
+	R1=8;
+	R2=currentPID;
+	call MOD_0;
+	restore;
+	
+	//Terminal Acquired
+
+	alias word R3;
+	print word;
+
+	//Releasing terminal
+
+
+	backup;
+	R1=9;
+	R2=currentPID;
+	call MOD_0;
+	
+	restore;
+
+	return;
+
+else
+	//Terminal read function
+	if(functionNum==4) then
+
+		
+		backup;
+		R1=8;
+		R2=currentPID;
+		call MOD_0;
+		
+		restore;
+		
+		//Terminal Acquired
+
+		read;
+		[PROCESS_TABLE + (currentPID*16) + 4] = WAIT_TERMINAL;
+
+		
+		
+		backup;
+		call MOD_5; //Invoking Scheduler
+		
+		
+		restore;
+
+		alias physicalPageNum R4;
+		alias offset R5;
+		alias PhysicalAddr R6;
+		physicalPageNum = [PTBR + 2 * ((R3)/ 512)];
+		offset = (R3) % 512;
+		PhysicalAddr = (physicalPageNum * 512) + offset;
+		[PhysicalAddr] = [PROCESS_TABLE + (currentPID*16) + 8];
+
+		return;
+	else
+		return;
+
+	endif;
+
+endif;
+return;
+
+
+
+
+

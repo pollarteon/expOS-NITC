@@ -1,24 +1,28 @@
-alias currPID R0;
-alias curr_process_table R1;
-alias counter R2;
+alias pid R0;
+pid = [SYSTEM_STATUS_TABLE+1]; //Retriving PID of process which invoked INT_10
 
-currPID = [SYSTEM_STATUS_TABLE  + 1];
-curr_process_table = PROCESS_TABLE + currPID*16; 
-[curr_process_table + 9] = 10;
-[curr_process_table + 13] = SP;
-[curr_process_table + 4] = TERMINATED;
-SP = [curr_process_table + 11]*512;
 
-counter = 1;
-while(counter < 16) do
-	if([PROCESS_TABLE + counter*16 + 4] != TERMINATED) then
+[(PROCESS_TABLE + (pid * 16)) + 4]=TERMINATED; //Setting PID of Invoking process to TERMINATED
+
+alias check R1;
+check=1;
+
+alias index R2;
+index=1;
+
+//Checking if there is any process which is not yet TERMINATED
+while(index<=15) do
+
+	if([(PROCESS_TABLE + (index * 16)) + 4]!=TERMINATED) then
+		check=0;
 		break;
 	endif;
-	counter = counter + 1;
+	index=index+1;
 endwhile;
 
-if(counter == 16) then
+//If all processes are terminated then halt the machine
+if(check==1) then
 	halt;
 else
-	call MOD_5;
+	call MOD_5; //Else call the scheduler
 endif;
