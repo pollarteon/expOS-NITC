@@ -1,6 +1,6 @@
 load --init ../expl/samples/shell.xsm
 load --int=10 ../spl/spl_progs/int_10.xsm
-load --exhandler ../spl/spl_progs/haltprog.xsm
+load --exhandler ../spl/spl_progs/exception_handler.xsm
 load --os ../spl/spl_progs/os_startup.xsm
 load --library ../expl/library.lib
 load --int=timer ../spl/spl_progs/sample_timer.xsm

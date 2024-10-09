@@ -67,5 +67,44 @@ if(functionNum==4) then //Free page table function
 
 	restore;
 
+	//going through heap and stack entries
+	if([DISK_MAP_TABLE+10*currentPID+2]!=-1)then
+		backup;
+			R1=4; //Release page function
+			R2=[DISK_MAP_TABLE+10*currentPID+2];
+			call MOD_2;
+		restore;
+	endif;
+	if([DISK_MAP_TABLE+10*currentPID+3]!=-1)then
+		backup;
+			R1=4; //Release page function
+			R2=[DISK_MAP_TABLE+10*currentPID+3];
+			call MOD_2;
+		restore;
+	endif;
+	if([DISK_MAP_TABLE+10*currentPID+8]!=-1)then
+		backup;
+			R1=4; //Release page function
+			R2=[DISK_MAP_TABLE+10*currentPID+8];
+			call MOD_2;
+		restore;
+	endif;
+	if([DISK_MAP_TABLE+10*currentPID+9]!=-1)then
+		backup;
+			R1=4; //Release page function
+			R2=[DISK_MAP_TABLE+10*currentPID+9];
+			call MOD_2;
+		restore;
+	endif;
+
+
+	//invalidating the disk map for the process
+	alias i R3;
+	i=0;
+	while(i<=9)do
+		[DISK_MAP_TABLE+10*currentPID+i]=-1;
+		i=i+1;
+	endwhile;
+
 	return;
 endif;

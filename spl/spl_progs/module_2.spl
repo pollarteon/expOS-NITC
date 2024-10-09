@@ -2,6 +2,7 @@
 
 alias functionNum R1;
 
+
 if(functionNum==1) then //Get free page
 
 
@@ -9,9 +10,9 @@ if(functionNum==1) then //Get free page
 
 	while([SYSTEM_STATUS_TABLE+2]==0) do //While MEM_FREE_COUNT is 0(i.e. no free memory available)
 		[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+4]=WAIT_MEM;
-
+		
 		backup;
-		call MOD_5;
+		call MOD_5; 
 		restore;	
 	endwhile;
 
@@ -26,10 +27,10 @@ if(functionNum==1) then //Get free page
 			break;
 		endif;
 		i=i+1;
+		
 	endwhile;
 
 	R0=i;
-
 	return;
 
 endif;
@@ -44,4 +45,70 @@ if(functionNum==2) then //Release page
 	endif;
 	
 	return;
+endif;
+
+if(functionNum==4)then //release block function
+	[DISK_FREE_LIST+R2]=[DISK_FREE_LIST+R2]-1;
+	return;
+endif;
+
+
+if(functionNum==5) then //get code page
+	
+	alias currentPID R12;
+	alias blockNo R13;
+	currentPID=R2;
+	blockNo=R3;
+
+	alias i R4;
+	i=0;
+	while(i<=15) do
+		
+		
+		if([DISK_MAP_TABLE + 10*i+4]==blockNo) then 
+			if([PAGE_TABLE_BASE + i*20 + 8]!=-1) then
+				R0=[PAGE_TABLE_BASE + i*20 + 8];
+				[MEMORY_FREE_LIST+R0]=[MEMORY_FREE_LIST+R0]+1; //incrementng memory free list
+				return;
+			endif;
+		endif;
+	
+		if([DISK_MAP_TABLE + 10*i+5]==blockNo) then
+			if([PAGE_TABLE_BASE + i*20 + 10]!=-1) then
+				R0=[PAGE_TABLE_BASE + i*20 + 10];
+				[MEMORY_FREE_LIST+R0]=[MEMORY_FREE_LIST+R0]+1;
+				return;
+			endif;
+		endif;
+
+		if([DISK_MAP_TABLE + 10*i+6]==blockNo) then
+			if([PAGE_TABLE_BASE + i*20 + 12]!=-1) then
+				R0=[PAGE_TABLE_BASE + i*20 + 12];
+				[MEMORY_FREE_LIST+R0]=[MEMORY_FREE_LIST+R0]+1;
+				return;
+			endif;
+		endif;
+
+		if([DISK_MAP_TABLE + 10*i+7]==blockNo) then
+			if([PAGE_TABLE_BASE + i*20 + 14]!=-1) then
+				R0=[PAGE_TABLE_BASE + i*20 + 14];
+				[MEMORY_FREE_LIST+R0]=[MEMORY_FREE_LIST+R0]+1;
+				return;
+			endif;
+		endif;
+		
+		i = i + 1;
+	endwhile;
+	
+	//If the code page is not in memory
+		R1=1;
+		call MOD_2;
+		R1=2; 
+		R2=currentPID; 
+		R3=R0;
+		R4=blockNo;
+		call MOD_4; 
+	
+	return;
+ 
 endif;
