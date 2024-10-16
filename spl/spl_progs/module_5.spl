@@ -1,13 +1,12 @@
 //SCHEDULER
 
-
+//getting current process id
 alias currentPID R0;
 currentPID = [SYSTEM_STATUS_TABLE+1];
 
 multipush (BP);
 
 //saving process context in process table
-
 alias process_table_entry R1;
 process_table_entry = PROCESS_TABLE + currentPID * 16;
 
@@ -25,7 +24,7 @@ alias newPID R2;
 newPID=0;
 
 tempPID=1;
-
+/////////////////////////////
 while(tempPID<currentPID) do
 	if([ (PROCESS_TABLE + (tempPID * 16)) + 4 ] == READY || [ (PROCESS_TABLE + (tempPID * 16)) + 4 ] == CREATED) then
 		newPID=tempPID;
@@ -33,7 +32,7 @@ while(tempPID<currentPID) do
 	endif;
 	tempPID=tempPID+1;
 endwhile;
-
+/////////////////////////////
 
 tempPID=currentPID+1;
 while(tempPID<=15) do
@@ -47,29 +46,30 @@ endwhile;
 
 //restoring process context
 
-alias NewProcessTable R3;
-NewProcessTable = PROCESS_TABLE + newPID * 16;
+alias new_process_table R13;
+new_process_table = PROCESS_TABLE + newPID * 16;
 
-alias new_userarea_page_no R4;
-new_userarea_page_no = [NewProcessTable + 11];
+alias new_userarea_page_no R14;
+new_userarea_page_no = [new_process_table + 11];
 
-SP =  new_userarea_page_no * 512 + [NewProcessTable + 12] ;
-PTBR = [NewProcessTable + 14];
-PTLR = [NewProcessTable + 15];
+SP =  new_userarea_page_no * 512 + [new_process_table + 12] ;
+PTBR = [new_process_table + 14];
+PTLR = [new_process_table + 15];
 
-//changing to new process
+//changing current process
 [SYSTEM_STATUS_TABLE + 1] = newPID;
 
-if([NewProcessTable + 4] == CREATED) then
-
-	SP = [NewProcessTable + 13];
-	[NewProcessTable + 4] = RUNNING;
-	[NewProcessTable + 9] = 0;
+if([new_process_table + 4] == CREATED) then
+	SP=[new_process_table + 13];
+	
+	BP = [[PROCESS_TABLE+16*newPID+11]*512];
+	[new_process_table + 4] = RUNNING;
+	[new_process_table + 9] = 0;
 	ireturn;
 
 endif;
 
-[NewProcessTable + 4] = RUNNING;
+[new_process_table + 4] = RUNNING;
 
 multipop (BP);
 

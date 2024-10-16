@@ -1,12 +1,11 @@
 //Switching to kernel stack
 
-
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16)+13]=SP;
 SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11]*512-1;
 
 backup;
 
-[DISK_STATUS_TABLE]=0; //Disk status bit to zero(i.e. it is free)
+[DISK_STATUS_TABLE]=0; 
 
 alias i R0;
 i=0;

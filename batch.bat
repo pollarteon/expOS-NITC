@@ -9,6 +9,7 @@ load --int=disk ../spl/spl_progs/disk_interrupt.xsm
 load --int=7 ../spl/spl_progs/int_7.xsm
 load --int=6 ../spl/spl_progs/int_6.xsm
 load --int=9 ../spl/spl_progs/int_9.xsm
+load --int=8 ../spl/spl_progs/int_8.xsm
 load --idle ../expl/samples/idleProcess.xsm
 load --module 7 ../spl/spl_progs/module_7.xsm
 load --module 5 ../spl/spl_progs/module_5.xsm
@@ -16,3 +17,7 @@ load --module 0 ../spl/spl_progs/module_0.xsm
 load --module 4 ../spl/spl_progs/module_4.xsm
 load --module 1 ../spl/spl_progs/module_1.xsm
 load --module 2 ../spl/spl_progs/module_2.xsm
+load --exec ../expl/samples/LL.xsm
+load --exec ../expl/samples/even100.xsm
+load --exec ../expl/samples/oddnos.xsm
+load --exec ../expl/samples/fork1.xsm

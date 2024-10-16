@@ -31,6 +31,7 @@ if(functionNum==1) then //Get free page
 	endwhile;
 
 	R0=i;
+
 	return;
 
 endif;
@@ -43,6 +44,7 @@ if(functionNum==2) then //Release page
 	if([MEMORY_FREE_LIST+R2]==0) then
 		[SYSTEM_STATUS_TABLE+2]=[SYSTEM_STATUS_TABLE+2]+1; 
 	endif;
+	
 	
 	return;
 endif;
