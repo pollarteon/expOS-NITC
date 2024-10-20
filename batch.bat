@@ -1,4 +1,4 @@
-load --init ../expl/samples/shell.xsm
+load --init ../expl/samples/LL.xsm
 load --int=10 ../spl/spl_progs/int_10.xsm
 load --exhandler ../spl/spl_progs/exception_handler.xsm
 load --os ../spl/spl_progs/os_startup.xsm
@@ -22,3 +22,4 @@ load --exec ../expl/samples/even100.xsm
 load --exec ../expl/samples/oddnos.xsm
 load --exec ../expl/samples/fork1.xsm
 load --exec ../expl/samples/forkViva.xsm
+load --exec ../expl/samples/LLfork.xsm
