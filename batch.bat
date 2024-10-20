@@ -1,4 +1,4 @@
-load --init ../expl/samples/LL.xsm
+load --init ../expl/samples/shell2.xsm
 load --int=10 ../spl/spl_progs/int_10.xsm
 load --exhandler ../spl/spl_progs/exception_handler.xsm
 load --os ../spl/spl_progs/os_startup.xsm
@@ -10,6 +10,8 @@ load --int=7 ../spl/spl_progs/int_7.xsm
 load --int=6 ../spl/spl_progs/int_6.xsm
 load --int=9 ../spl/spl_progs/int_9.xsm
 load --int=8 ../spl/spl_progs/int_8.xsm
+load --int=11 ../spl/spl_progs/int_11.xsm
+load --int=15 ../spl/spl_progs/int_15.xsm
 load --idle ../expl/samples/idleProcess.xsm
 load --module 7 ../spl/spl_progs/module_7.xsm
 load --module 5 ../spl/spl_progs/module_5.xsm
@@ -23,3 +25,5 @@ load --exec ../expl/samples/oddnos.xsm
 load --exec ../expl/samples/fork1.xsm
 load --exec ../expl/samples/forkViva.xsm
 load --exec ../expl/samples/LLfork.xsm
+load --exec ../expl/samples/pid.xsm
+load --exec ../expl/samples/asg2_21.xsm

@@ -1,18 +1,18 @@
 //RESOURCE MANAGER MODULE
 
-alias functionNum R1; 
-alias currentPID R2;
+alias functionNum R1; //retriving the function number
+alias currentPID R2; //PID of current process
 
 
-if(functionNum==3) then //Acquire Disk
+if(functionNum==3) then //Func number 3 == Acquire Disk
 
 	while( ([DISK_STATUS_TABLE] ) == 1) do
-		[(PROCESS_TABLE+(currentPID*16))+4] = WAIT_DISK;
-		
+		[ (PROCESS_TABLE + (currentPID * 16)) + 4 ] = WAIT_DISK;
+		//multipush(R0, R1, R2, R3, R4, R5, R6);
 		backup;
-		call MOD_5;//SCHEDULER
+		call MOD_5;
 		restore;
-		
+		//multipop(R0, R1, R2, R3, R4, R5, R6);
 	endwhile;
 
 	[DISK_STATUS_TABLE]=1; //setting status of disk status table to 1
@@ -21,7 +21,7 @@ if(functionNum==3) then //Acquire Disk
 
 endif;
 
-if(functionNum==8) then //Acquire terminal
+if(functionNum==8) then //Func number 8 == Acquire terminal
 	
 	while( ([TERMINAL_STATUS_TABLE] ) == 1) do
 
@@ -38,7 +38,7 @@ if(functionNum==8) then //Acquire terminal
 
 endif;
 
-if(functionNum==9) then //Release terminal
+if(functionNum==9) then //func number 9 == Release terminal
 
 	if([TERMINAL_STATUS_TABLE + 1] == currentPID) then
 

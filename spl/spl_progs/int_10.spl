@@ -1,14 +1,13 @@
-//setting mode flag to exit sys number
+//set mode flag of cureent process to 10(exit system call)
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 10;
 
-[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=10;
-
-
-[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13]=SP;
-SP = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512-1;
+//switch to kernel stack
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
 
 backup;
-R1=3; //exit process function
-R2=[SYSTEM_STATUS_TABLE+1];
+R1=3; //Function number of exit in process manager module(Module 1)
+R2=[SYSTEM_STATUS_TABLE + 1];
 call MOD_1;
 restore;
 

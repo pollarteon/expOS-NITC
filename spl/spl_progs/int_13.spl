@@ -1,0 +1,105 @@
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//SEMAPHORE GET AND RELEASE
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+//Switching to Kernel Stack
+
+alias userSP R0;
+alias
+userSP = SP;
+[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13]=SP;
+SP = [PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11]*512-1;
+
+//extracting sysCallNumber
+
+alias physicalPageNum R1;
+alias offset R2;
+alias Addr R3;
+alias sysCallNumber R4;
+
+physicalPageNum = [PTBR+2*((userSP-5)/512)];
+offset = (userSP-5)%512;
+Addr = (physicalPageNum*512)+offset;
+sysCallNumber = [Addr];
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//implementing semget and SemRelease
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+//sem get syscall
+
+if(sysCallNumber==17)then 
+
+    [PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+9]=17;
+
+    alias userAreaPageNo R5;
+    alias freeIndex R6;
+    alias i R7;
+    userAreaPageNo = [PROCESS_TABLE+(16*[SYSTEM_STATUS_TABLE+1])+11];
+    freeIndex = -1;
+    i = 496;
+    while(i<=511)do
+        if([userAreaPageNo*512+i]==-1)then
+            freeIndex = i;
+            break;
+        endif;
+        i=i+2;
+    endwhile;
+
+    //resource table is FULL
+
+    if(freeIndex==-1)then
+        alias physicalAddrRetVal R8;
+        physicalAddrRetVal = ([PTBR+2*((userSP-1)/512)]*512)+((userSP-1)%512);
+        [physicalAddrRetVal]=-1;
+
+        [PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+9]=0;
+        SP = [PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13];
+        ireturn;
+    endif;
+
+    alias semaphore_descript R9;
+    alias semaphoreTableIndex R10;
+    semaphore_descript = (freeIndex-496)/2;
+    [userAreaPageNo*512+freeIndex]=1; //setting resource identifier as SEMAPHORE
+
+    backup;
+        R1=6;//aqcuire semaphore Function
+        R2=[SYSTEM_STATUS_TABLE+1];
+        call MOD_0;
+        semaphoreTableIndex=R0;
+    restore;
+
+    if(semaphoreTableIndex==-1)then //failure
+        alias physicalAddrRetVal R8;
+        physicalAddrRetVal = ([PTBR+2*((userSP-1)/512)]*512)+((userSP-1)%512);
+        [physicalAddrRetVal]=-2;
+
+        [PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+9]=0;
+        SP = [PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13];
+        ireturn;
+    endif;
+
+    [userAreaPageNo*512+freeIndex+1] = semaphoreTableIndex;
+    
+    SP = [PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13];
+    [PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+9]=0;
+    alias physicalAddrRetVal R8;
+    physicalAddrRetVal = ([PTBR+2*((userSP-1)/512)]*512)+((userSP-1)%512);
+    [physicalAddrRetVal]=semaphore_descript;
+    
+    ireturn;
+    
+endif;
+
+//SEMRELEASE syscall
+
+if(sysCallNumber==18)then
+
+    
+
+endif;
+
+SP = [PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13];
+ireturn;
