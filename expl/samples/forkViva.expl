@@ -1,0 +1,18 @@
+int main(){
+    decl
+        int temp,b;
+    enddecl
+    begin
+        b = exposcall("Fork");
+        if(b==0)then
+            temp = exposcall("Write",-2,b);
+            temp = exposcall("Exec","unknown.xsm");
+            b= b+10;
+            temp=exposcall("Write",-2,b);
+
+        endif;
+        temp = exposcall("Write",-2,b);
+        return 0;
+    end
+  
+}

@@ -77,13 +77,13 @@ restore;
 //copying "UPTR" from parent to child
 [PROCESS_TABLE + 16*newPid_child + 13]=[PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE + 1] + 13];
 
-//Setting "mode flag" of child process in process table to zero
+//Setting "mode flag" 
 [PROCESS_TABLE + 16*newPid_child + 9]=0;
 
-//Setting "KPTR" of child process in process table to zero
+//Setting "KPTR" 
 [PROCESS_TABLE + 16*newPid_child + 12]=0;
 
-//Setting "TICK field" of child process in process table to zero
+//Setting "TICK field" 
 [PROCESS_TABLE + 16*newPid_child + 0]=0;
 
 //PPID of child == PID of parent
@@ -101,14 +101,14 @@ while(ind<=511) do
 endwhile;
 
 //copying pre process disk map table from parent to child
-alias disk_map_old R11;
-disk_map_old= DISK_MAP_TABLE + 10*[SYSTEM_STATUS_TABLE + 1];
+alias olddiskMap R11;
+olddiskMap= DISK_MAP_TABLE + 10*[SYSTEM_STATUS_TABLE + 1];
 alias disk_map R12;
 disk_map= DISK_MAP_TABLE + 10*newPid_child;
 alias i R10;
 i=0;
 while(i<=9) do
-	[disk_map+i]=[disk_map_old+i];
+	[disk_map+i]=[olddiskMap+i];
 	i=i+1;
 endwhile;
 
@@ -144,7 +144,6 @@ while(i<=511) do
 	i=i+1;
 endwhile;
 
-//Cloning User stacks is completed
 
 //Storing BP on top of kernel stack of newly created process
 [[PROCESS_TABLE+16*newPid_child+11]*512] = BP;
@@ -158,7 +157,7 @@ endwhile;
 //reset the mode flag of parent process to 0
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
 
-//changing back to user stack
+
 SP = userSP;
 breakpoint;
 ireturn;

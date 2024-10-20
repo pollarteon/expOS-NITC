@@ -42,7 +42,7 @@ if(functionNum==2) then //Release page
 
 
 	if([MEMORY_FREE_LIST+R2]==0) then
-		[SYSTEM_STATUS_TABLE+2]=[SYSTEM_STATUS_TABLE+2]+1; 
+		[SYSTEM_STATUS_TABLE+2]=[SYSTEM_STATUS_TABLE+2]+1;  //increment MEM_FREE_COUNT
 	endif;
 	
 	
@@ -50,7 +50,7 @@ if(functionNum==2) then //Release page
 endif;
 
 if(functionNum==4)then //release block function
-	[DISK_FREE_LIST+R2]=[DISK_FREE_LIST+R2]-1;
+	[DISK_FREE_LIST+R2]=[DISK_FREE_LIST+R2]-1; //r2 contains the blockNo to be freed
 	return;
 endif;
 
@@ -104,12 +104,14 @@ if(functionNum==5) then //get code page
 	
 	//If the code page is not in memory
 		R1=1;
-		call MOD_2;
+		call MOD_2; //get free page function
 		R1=2; 
 		R2=currentPID; 
 		R3=R0;
 		R4=blockNo;
-		call MOD_4; 
+		call MOD_4; //diskload function
+
+	
 	
 	return;
  

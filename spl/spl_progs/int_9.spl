@@ -53,7 +53,7 @@ endif;
 //Calling "Exit Process" function
 alias PID_exit R10;
 PID_exit=[SYSTEM_STATUS_TABLE + 1];
-
+ 
 backup;
 R1=3; 
 R2=[SYSTEM_STATUS_TABLE + 1];
@@ -63,7 +63,6 @@ restore;
 
 
 alias userAreaPageNo R8;
-
 userAreaPageNo=[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+11];
 
 //Setting up per-process resource table in last 16 words of user area page
@@ -97,7 +96,6 @@ PTBR=PAGE_TABLE_BASE+[SYSTEM_STATUS_TABLE+1]*20;
 [PTBR+3]="0100";
 
 
-//stage 19 invalidating heap entry
 
 
 [PTBR+4]=-1;

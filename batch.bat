@@ -21,3 +21,4 @@ load --exec ../expl/samples/LL.xsm
 load --exec ../expl/samples/even100.xsm
 load --exec ../expl/samples/oddnos.xsm
 load --exec ../expl/samples/fork1.xsm
+load --exec ../expl/samples/forkViva.xsm
