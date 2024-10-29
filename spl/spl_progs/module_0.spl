@@ -1,34 +1,141 @@
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //RESOURCE MANAGER MODULE
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-alias functionNum R1; //retriving the function number
-alias currentPID R2; //PID of current process
+alias functionNum R1; 
+alias currentPID R2; 
 
 
-if(functionNum==3) then //Func number 3 == Acquire Disk
+if(functionNum==3) then //Acquire Disk
 
 	while( ([DISK_STATUS_TABLE] ) == 1) do
+
 		[ (PROCESS_TABLE + (currentPID * 16)) + 4 ] = WAIT_DISK;
-		//multipush(R0, R1, R2, R3, R4, R5, R6);
+
 		backup;
 		call MOD_5;
 		restore;
-		//multipop(R0, R1, R2, R3, R4, R5, R6);
+		
 	endwhile;
 
-	[DISK_STATUS_TABLE]=1; //setting status of disk status table to 1
-	[DISK_STATUS_TABLE+4]=currentPID; //setting PID of process in disk status table
+	[DISK_STATUS_TABLE]=1; 
+	[DISK_STATUS_TABLE+4]=currentPID; 
 	return;
 
 endif;
 
-if(functionNum==8) then //Func number 8 == Acquire terminal
+if(functionNum==4)then //Acquire Inode
+	alias inodeIndex R3;
+	
+	while([FILE_STATUS_TABLE+4*inodeIndex]!=-1)do
+		[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+4]=WAIT_FILE;
+		[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+5]=inodeIndex;
+		backup;
+		call MOD_5;
+		restore;
+	endwhile;
+
+	//if inode becomes invalidate
+
+	if([INODE_TABLE+16*inodeIndex+1]==-1)then
+		R0=-1;
+		return;
+	endif;
+
+	[FILE_STATUS_TABLE+4*inodeIndex]=currentPID; //lock pid field
+	R0 =0;
+	return;
+
+endif;
+
+if(functionNum==5)then //Release Inode
+
+	alias inodeIndex R3;
+	alias i R4;
+	if(currentPID!=[FILE_STATUS_TABLE+4*inodeIndex])then
+		R0=-1;
+		return;
+	endif;
+	i =0;
+	while(i<16)do
+		if([PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+4]==WAIT_FILE && [PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+4]==currentPID)then
+			[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+4]=READY;
+		endif;
+		i=i+1;
+	endwhile;
+
+	R0 = 0;
+	return;
+
+endif;
+
+
+if(functionNum==6)then //Acquire semaphore
+
+	alias freeIndex R10;
+	alias i R11;
+	freeIndex=-1;
+	i=0;
+	while(i<32)do
+		if([SEMAPHORE_TABLE+i*4+1]==0)then
+			freeIndex =i;
+			break;
+			i=i+1;
+		endif;
+	endwhile;
+
+	if(freeIndex==-1)then
+		R0=-1;
+		return;
+	endif;
+
+	[SEMAPHORE_TABLE+freeIndex*4+0]=-1; //locking field to -1
+	[SEMAPHORE_TABLE+freeIndex*4+1]=1; //Process count field to 1
+
+	R0 = freeIndex;
+	return;
+
+endif;
+
+if(functionNum==7)then //release semaphore
+	
+	alias semaphoreTableIndex R10;
+	semaphoreTableIndex=R3;
+	
+	//failure case
+	if(semaphoreTableIndex<0 || semaphoreTableIndex>=32)then
+		R0=-1;
+		return;
+	endif;
+
+	if([SEMAPHORE_TABLE+4*semaphoreTableIndex+0]==[SYSTEM_STATUS_TABLE+1]) then
+		
+		[SEMAPHORE_TABLE+4*semaphoreTableIndex+0]=-1;
+		alias i R9;
+		i=0;
+		while(i<=15) do
+			if([PROCESS_TABLE+16*i+4]==WAIT_SEMAPHORE && 
+				[PROCESS_TABLE+16*i+5]==semaphoreTableIndex) then
+				[PROCESS_TABLE+16*i+4]=READY;
+			endif;
+			i=i+1;
+		endwhile;
+	endif;
+	[SEMAPHORE_TABLE+4*semaphoreTableIndex+1]=[SEMAPHORE_TABLE+4*semaphoreTableIndex+1]-1;
+	R0=0;
+	return;
+endif;
+
+
+
+if(functionNum==8) then //Acquire terminal
 	
 	while( ([TERMINAL_STATUS_TABLE] ) == 1) do
 
 		[ (PROCESS_TABLE + (currentPID * 16)) + 4 ] = WAIT_TERMINAL;
-		multipush(R0, R1, R2, R3, R4, R5, R6);
+		backup;
 		call MOD_5;
-		multipop(R0, R1, R2, R3, R4, R5, R6);
+		restore;
 
 	endwhile;
 
@@ -38,14 +145,14 @@ if(functionNum==8) then //Func number 8 == Acquire terminal
 
 endif;
 
-if(functionNum==9) then //func number 9 == Release terminal
+if(functionNum==9) then //Release terminal
 
 	if([TERMINAL_STATUS_TABLE + 1] == currentPID) then
 
 		[TERMINAL_STATUS_TABLE] = 0;
 		alias i R6;
 		i=0;
-		//waking up all the processes which are in WAIT_TERMINAL state
+		
 		while(i<=15) do
 			if([PROCESS_TABLE+16*i+4] == WAIT_TERMINAL) then
 				[PROCESS_TABLE+16*i+4]=READY;

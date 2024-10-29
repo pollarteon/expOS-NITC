@@ -1,0 +1,135 @@
+//INT_14
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//SEMLOCK AND SEMUNLOCK SYSTEM CALLS
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+alias physicalPageNum R1;
+alias offset R2;
+alias Addr R3;
+alias sysCallNumber R4;
+alias semaphore_descript R5;
+alias userAreaPageNo R6;
+alias semaphoreTableIndex R7;
+alias physicalAddrRetVal R8;
+alias i R9;
+
+
+//switching to kernel stack
+alias userSP R0;
+userSP = SP;
+[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13]=SP;
+SP = [PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11]*512-1;
+
+//extracting syscall number from (userSP-5)
+
+
+
+physicalPageNum = [PTBR+(2*(userSP-5)/512)];
+offset = (userSP-5)%512;
+Addr = (physicalPageNum*512)+offset;
+sysCallNumber = [Addr];
+
+//--------------------------------------------------------------------------------------------------------------------------------------
+//implementing Syscalls
+//--------------------------------------------------------------------------------------------------------------------------------------
+
+
+if(sysCallNumber==19) then  //SEMLOCK system call
+
+	[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 19;
+
+	physicalPageNum = [PTBR + 2 * ((userSP - 4)/ 512)];
+	offset = (userSP - 4) % 512;
+	Addr = (physicalPageNum * 512) + offset;
+	semaphore_descript = [Addr];
+	userAreaPageNo = [PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+11];
+
+    //failure
+	if(semaphore_descript<0 || semaphore_descript>=8 || [userAreaPageNo*512 + (semaphore_descript * 2 + 496)]!=1) then
+		
+		physicalAddrRetVal = ([PTBR + 2 * ((userSP - 1) / 512)] * 512) + ((userSP - 1) % 512);
+		[physicalAddrRetVal] = -1;
+		
+		[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+		
+		SP = userSP;
+		ireturn;
+	endif;
+	semaphoreTableIndex = [userAreaPageNo*512 + (semaphore_descript * 2 + 496) +1];
+	
+	while([SEMAPHORE_TABLE + 4*semaphoreTableIndex + 0] != -1 && [SEMAPHORE_TABLE + 4*semaphoreTableIndex + 0]!=[SYSTEM_STATUS_TABLE+1]) do
+		[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+4]=WAIT_SEMAPHORE;
+		[PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+5]=semaphoreTableIndex; 
+		backup;
+		call MOD_5; //invoking Scheduler
+		restore;
+	endwhile;
+
+	[SEMAPHORE_TABLE + 4*semaphoreTableIndex + 0] = [SYSTEM_STATUS_TABLE+1];
+	
+    //Changing back to user stack and return to user mode
+	SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+	[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+	physicalAddrRetVal = ([PTBR + 2 * ((userSP - 1) / 512)] * 512) + ((userSP - 1) % 512);
+	[physicalAddrRetVal] = 0;
+	ireturn;
+
+endif;
+if(sysCallNumber==20) then //SEMUNLOCK system call
+
+	[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 20;
+
+	physicalPageNum = [PTBR + 2 * ((userSP - 4)/ 512)];
+	offset = (userSP - 4) % 512;
+	Addr = (physicalPageNum * 512) + offset;
+	semaphore_descript = [Addr];
+	userAreaPageNo = [PROCESS_TABLE+16*[SYSTEM_STATUS_TABLE+1]+11];
+
+    //failure
+	if(semaphore_descript<0 || semaphore_descript>=8 || [userAreaPageNo*512 + (semaphore_descript * 2 + 496)]!=1) then
+		
+		physicalAddrRetVal = ([PTBR + 2 * ((userSP - 1) / 512)] * 512) + ((userSP - 1) % 512);
+		[physicalAddrRetVal] = -1;
+		[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+		SP = userSP;
+		ireturn;
+
+	endif;
+
+
+	semaphoreTableIndex = [userAreaPageNo*512 + (semaphore_descript * 2 + 496) +1];
+
+	if([SEMAPHORE_TABLE + 4*semaphoreTableIndex + 0]!=-1) then
+		if([SEMAPHORE_TABLE + 4*semaphoreTableIndex + 0]!=[SYSTEM_STATUS_TABLE+1]) then
+		
+			physicalAddrRetVal = ([PTBR + 2 * ((userSP - 1) / 512)] * 512) + ((userSP - 1) % 512);
+			[physicalAddrRetVal] = -2;
+		
+			[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+			SP = userSP;
+			ireturn;
+
+		endif;
+
+		[SEMAPHORE_TABLE + 4*semaphoreTableIndex + 0]=-1;
+		i=0;
+		while(i<=15) do
+			if([PROCESS_TABLE+16*i+4]==WAIT_SEMAPHORE &&
+				[PROCESS_TABLE+16*i+5]==semaphoreTableIndex) then
+				[PROCESS_TABLE+16*i+4]=READY;
+			
+			endif;
+			i=i+1;
+		endwhile;
+	endif;
+
+	//Changing back to user stack and return to user mode
+	SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+	[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;	
+	physicalAddrRetVal = ([PTBR + 2 * ((userSP - 1) / 512)] * 512) + ((userSP - 1) % 512);
+	[physicalAddrRetVal] = 0;
+	ireturn;
+
+endif;

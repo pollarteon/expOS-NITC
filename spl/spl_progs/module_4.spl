@@ -3,6 +3,34 @@
 alias functionNum R1;
 alias currentPID R2;
 
+if(functionNum==1) then //Disk Store function
+
+	alias page_no R3;
+	alias block_no R4;
+
+	backup;
+		R1=3;
+		R2=currentPID;
+		call MOD_0;
+	restore;
+
+	[DISK_STATUS_TABLE+1]=1; //load/store
+	[DISK_STATUS_TABLE+2]=page_no;
+	[DISK_STATUS_TABLE+3]=block_no;
+
+	store(page_no,block_no);
+
+	[PROCESS_TABLE + (currentPID*16) + 4] = WAIT_DISK;
+
+	backup;
+	call MOD_5;//invoking Scheduler
+	restore;
+
+	return;
+
+endif;
+
+
 if(functionNum==2) then //Disk load function
 
 	alias page_no R3;
@@ -15,17 +43,15 @@ if(functionNum==2) then //Disk load function
 	call MOD_0;
 	restore;
 
-	//Setting up disk status table entries
-	[DISK_STATUS_TABLE+1]=0; //Setting the load/store bit to zero(indicating its a load operation)
-	[DISK_STATUS_TABLE+2]=page_no; //Setting page number in disk status table
-	[DISK_STATUS_TABLE+3]=block_no; //Setting block number in disk status table
 
-	//load statement
+	[DISK_STATUS_TABLE+1]=0; //load / store bit
+	[DISK_STATUS_TABLE+2]=page_no; 
+	[DISK_STATUS_TABLE+3]=block_no; 
+
 	load(page_no,block_no);
 
 	[PROCESS_TABLE + (currentPID*16) + 4] = WAIT_DISK;	
 
-	//Invoking context switch module
 	backup;
 	call MOD_5; //Invoking Scheduler
 	restore;
@@ -72,7 +98,7 @@ else
 		read;
 		[PROCESS_TABLE + (currentPID*16) + 4] = WAIT_TERMINAL;
 
-		//Invoking context switch module
+		
 		backup;
 		call MOD_5; //Invoking Scheduler
 		restore;

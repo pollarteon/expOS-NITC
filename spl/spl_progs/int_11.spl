@@ -6,7 +6,7 @@ alias physicalPageNum R1;
 alias offset R2;
 alias Addr R3;
 alias sysCallNumber R4;
-alias req_PID R5;
+alias reqPid R5;
 alias physicalAddrRetVal R6;
 alias i R7;
 
@@ -16,7 +16,6 @@ userSP=SP;
 [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP; 
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1; 
 
-//accessing the System call number from user stack
 
 physicalPageNum = [PTBR + 2 * ((userSP - 5)/ 512)];
 offset = (userSP - 5) % 512;
@@ -56,11 +55,11 @@ if(sysCallNumber==13) then //wait system call
 	physicalPageNum = [PTBR + 2 * ((userSP - 4)/ 512)];
 	offset = (userSP - 4) % 512;
 	Addr = (physicalPageNum * 512) + offset;
-	req_PID=[Addr];
+	reqPid=[Addr];
 
 
 //invalid condition
-	if(req_PID<0 || req_PID>=16 || req_PID==[SYSTEM_STATUS_TABLE+1] || [PROCESS_TABLE+req_PID*16+4]==TERMINATED) then
+	if(reqPid<0 || reqPid>=16 || reqPid==[SYSTEM_STATUS_TABLE+1] || [PROCESS_TABLE+reqPid*16+4]==TERMINATED) then
 		
 		physicalAddrRetVal = ([PTBR + 2 * ((userSP - 1) / 512)] * 512) + ((userSP - 1) % 512);
 		[physicalAddrRetVal] = -1;
@@ -71,10 +70,10 @@ if(sysCallNumber==13) then //wait system call
 	endif;
 
 	[PROCESS_TABLE + 16 * [SYSTEM_STATUS_TABLE + 1] + 4] = WAIT_PROCESS;
-	[PROCESS_TABLE + 16 * [SYSTEM_STATUS_TABLE + 1] + 5] = req_PID;
+	[PROCESS_TABLE + 16 * [SYSTEM_STATUS_TABLE + 1] + 5] = reqPid;
 
 	backup;
-		call MOD_5;
+		call MOD_5;//scheduler
 	restore;
 
 	
@@ -89,13 +88,12 @@ endif;
 
 if(sysCallNumber==14) then //Signal 
 
-	//Setting mode flag to system call number
+	//Setting mode flag
 	[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 14;
 
 	i=0;
 	while(i<=15) do
-		if ([PROCESS_TABLE + i*16 + 4]==WAIT_PROCESS && 
-			[PROCESS_TABLE + i*16 + 5]==[SYSTEM_STATUS_TABLE+1]) then
+		if ([PROCESS_TABLE + i*16 + 4]==WAIT_PROCESS && [PROCESS_TABLE + i*16 + 5]==[SYSTEM_STATUS_TABLE+1]) then
 				[PROCESS_TABLE + i*16 + 4]=READY;
 		endif;
 		i=i+1;

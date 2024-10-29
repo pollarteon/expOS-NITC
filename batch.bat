@@ -6,11 +6,14 @@ load --library ../expl/library.lib
 load --int=timer ../spl/spl_progs/sample_timer.xsm
 load --int=console ../spl/spl_progs/console_interrupt.xsm
 load --int=disk ../spl/spl_progs/disk_interrupt.xsm
+load --int=4 ../spl/spl_progs/int_4.xsm
 load --int=7 ../spl/spl_progs/int_7.xsm
 load --int=6 ../spl/spl_progs/int_6.xsm
 load --int=9 ../spl/spl_progs/int_9.xsm
 load --int=8 ../spl/spl_progs/int_8.xsm
 load --int=11 ../spl/spl_progs/int_11.xsm
+load --int=13 ../spl/spl_progs/int_13.xsm
+load --int=14 ../spl/spl_progs/int_14.xsm
 load --int=15 ../spl/spl_progs/int_15.xsm
 load --idle ../expl/samples/idleProcess.xsm
 load --module 7 ../spl/spl_progs/module_7.xsm
@@ -27,3 +30,9 @@ load --exec ../expl/samples/forkViva.xsm
 load --exec ../expl/samples/LLfork.xsm
 load --exec ../expl/samples/pid.xsm
 load --exec ../expl/samples/asg2_21.xsm
+load --exec ../expl/samples/asg1_22.xsm
+load --exec ../expl/samples/parent.xsm
+load --exec ../expl/samples/child.xsm
+load --exec ../expl/samples/asg3_22.xsm
+load --exec ../expl/samples/create.xsm
+load --exec ../expl/samples/delete.xsm

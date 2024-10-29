@@ -19,13 +19,21 @@ loadi(64,14);
 loadi(65,7);
 loadi(66,8);
 
-//INT 10
-loadi(22,35);
-loadi(23,36);
+//ROOT FILE
+loadi(62,5);
+
 
 //Exception handler
 loadi(2,15);
 loadi(3,16);
+
+//INT 4
+loadi(10,23);
+loadi(11,24);
+
+//INT 10
+loadi(22,35);
+loadi(23,36);
 
 //INT 7
 loadi(16,29);
@@ -46,6 +54,14 @@ loadi(19,32);
 //INT 11
 loadi(24,37);
 loadi(25,38);
+
+//INT 13
+loadi(28,41);
+loadi(29,42);
+
+//INT 14
+loadi(30,43);
+loadi(31,44);
 
 //INT 15
 loadi(32,45);
@@ -99,7 +115,33 @@ endwhile;
 //Disk terminal status to 0
 [DISK_STATUS_TABLE] = 0;
 
-//---------------------------------------INIT PROCESS -------------------------//
+//Inititalising Semaphore Table
+i =0;
+while(i<MAX_SEM_COUNT)do
+	[SEMAPHORE_TABLE+4*i]=-1;
+	[SEMAPHORE_TABLE+4*i+1]=0;
+	i=i+1;
+endwhile;
+
+//Initializing file status table
+i=0;
+while(i<60) do
+	[FILE_STATUS_TABLE+i*4+0]=-1;
+	[FILE_STATUS_TABLE+i*4+1]=-1;
+	i=i+1;
+endwhile;
+
+//Initializing buffer table
+i=0;
+while(i<4) do
+	[BUFFER_TABLE+i*4+0]=-1;
+	[BUFFER_TABLE+i*4+1]=0;
+	[BUFFER_TABLE+i*4+2]=-1;
+	i=i+1;
+endwhile;
+
+
+
 PTBR=PAGE_TABLE_BASE+20;
 PTLR=10;
 
@@ -164,10 +206,10 @@ disk_map= DISK_MAP_TABLE + 10*1;
 [PROCESS_TABLE+16+12]=0;
 [PROCESS_TABLE+16+14]=PAGE_TABLE_BASE+20;
 [PROCESS_TABLE+16+15]=10;
+[PROCESS_TABLE+16+3]=1;
 
 [76*512]=[65*512+1];
 
-//all other processes initially terminated
 multipush (R0);
 alias count R0;
 count = 2;
