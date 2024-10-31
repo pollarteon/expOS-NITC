@@ -38,7 +38,7 @@ if(functionNum==2) then //Free user area page
 	j = 496;
 	while(j<=511) do 
 	
-		if([userAreaPageNo+j]==1)then
+		if([userAreaPageNo+j]==1)then //semaphore
 
 			backup;
 			R1=7; //release semaphore
@@ -48,6 +48,15 @@ if(functionNum==2) then //Free user area page
 			restore;
 
 		endif;
+
+		if([userAreaPageNo+j]==0)then //file
+			backup;
+			R1 = 4; //close function in FILE MANAGER MODULE
+			R2 = [userAreaPageNo+j+1];
+			call MOD_3;
+			restore;
+		endif;
+
 		j=j+2;
 	endwhile;
 	

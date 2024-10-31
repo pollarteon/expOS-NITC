@@ -1,0 +1,115 @@
+//CLOSE AND OPEN SYSCALLS
+
+//switching to kernel stack
+
+alias userSP R0;
+userSP = SP;
+[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+13]=SP;
+SP = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11]*512-1;
+
+alias syscallNo R1;
+alias physicalAddrRetVal R2;
+alias userAreaPageNo R3;
+alias fileTableEntry R6;
+
+syscallNo = [[PTBR+2*(userSP-5)/512]*512+(userSP-5)%512];
+physicalAddrRetVal = [PTBR+2*(userSP-1)/512]*512+((userSP-1)%512);
+
+if(syscallNo==2)then //OPEN syscall
+
+    //setting MODE FLAG 
+    [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=2;
+
+    //finding a free per-process resource table entry
+
+    
+    alias freeResourceIndex R4;
+    alias i R5;
+    userAreaPageNo = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11];
+    freeResourceIndex = -1;
+    i = RESOURCE_TABLE_OFFSET;
+    while(i<512)do
+        if([userAreaPageNo+i]==-1)then
+            freeResourceIndex =i;
+            break;
+        endif;
+        i=i+2;
+    endwhile;
+
+    //if no free entry
+    if(freeResourceIndex==-1)then
+        [physicalAddrRetVal]=-3;
+        SP=userSP;
+        [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=0;
+        ireturn;
+    endif;
+
+    
+
+    backup;
+    R1=3;
+    R2=[[PTBR+2*(userSP-4)/512]*512+((userSP-4)%512)]; //filename
+    call MOD_3; //open function in FILE MANAGER MODULE
+    fileTableEntry = R0;
+    restore;
+
+    //if open failed 
+    if(fileTableEntry==-1 || fileTableEntry==-2)then
+        [physicalAddrRetVal]=fileTableEntry;
+        SP = userSP;
+        [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=0;
+        ireturn;
+    endif;
+
+    [userAreaPageNo+freeResourceIndex]=FILE;
+    [userAreaPageNo+freeResourceIndex+1]=fileTableEntry;
+
+    [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=0;
+    SP=userSP;
+    [physicalAddrRetVal]=freeResourceIndex; //will act as the file descriptor
+    ireturn;
+
+endif;
+
+if(syscallNo==3)then //close syscall
+
+    alias filedescriptor R7;
+
+    [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=3;
+    filedescriptor = [[PTBR+2*(userSP-4)/512]*512+((userSP-4)%512)];
+    
+    //invalid filedescriptor
+    if(filedescriptor<0 || filedescriptor>7)then
+        [physicalAddrRetVal]=-1;
+        [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=0;
+        SP=userSP;
+        ireturn;
+    endif;
+
+    userAreaPageNo = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+11];
+
+    //invalid resource identifier
+    if([userAreaPageNo+RESOURCE_TABLE_OFFSET+(filedescriptor*2)]==-1 || [(userAreaPageNo*512)+RESOURCE_TABLE_OFFSET+(filedescriptor*2)]!=FILE)then
+        [physicalAddrRetVal]=-1;
+        [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=0;
+        SP=userSP;
+        ireturn;
+    endif;
+
+    fileTableEntry = [userAreaPageNo+RESOURCE_TABLE_OFFSET+(filedescriptor*2)+1];
+
+    backup;
+    R1 = 4; //close function in FILE MANAGER MODULE
+    R2 = fileTableEntry;
+    call MOD_3;
+    restore;
+
+    //invalidating the file entry in per-resource table
+    [userAreaPageNo+RESOURCE_TABLE_OFFSET+(2*filedescriptor)]=-1;
+
+    [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=0;
+    SP = userSP;
+    [physicalAddrRetVal]=0;
+    ireturn;
+
+endif;

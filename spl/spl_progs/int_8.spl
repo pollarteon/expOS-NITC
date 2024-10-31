@@ -107,6 +107,11 @@ while(ind<=511) do
 	if([[PROCESS_TABLE+16*new_pid+11]*512+ind]==1)then
 		[SEMAPHORE_TABLE + [PROCESS_TABLE+16*new_pid + (ind + 1)]*4 + 1]=[SEMAPHORE_TABLE + [PROCESS_TABLE+16*new_pid + (ind + 1)]*4 + 1]+1;
 	endif;
+
+	//if FILE
+	if([[PROCESS_TABLE+16*new_pid+11]*512+ind]==0)then
+		[OPEN_FILE_TABLE+4*[[PROCESS_TABLE+16*new_pid+11]*512+ind+1]+1]=[OPEN_FILE_TABLE+4*[[PROCESS_TABLE+16*new_pid+11]*512+ind+1]+1]+1;
+	endif;
 	
 	ind=ind+2;
 endwhile;

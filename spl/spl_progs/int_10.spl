@@ -31,5 +31,5 @@ endwhile;
 if(check==1) then
 	halt;
 else
-	call MOD_5; //Else call the scheduler
+	call MOD_5; 
 endif;

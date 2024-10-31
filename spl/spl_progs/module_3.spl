@@ -1,0 +1,126 @@
+//FILE MANAGER MODULE
+
+alias functionNum R1;
+alias inodeIndex R3;
+
+if(functionNum==3)then //open function
+
+    alias filename R2;
+    alias i R4;
+    alias retVal R5;
+    alias freeOpenfileEntry R6;
+
+    inodeIndex =-1;
+    i =0;
+    while(i<MAX_FILE_NUM)do
+        if([INODE_TABLE+16*i+1]==filename)then
+            inodeIndex=i;
+            break;
+        endif;
+        i=i+1;
+    endwhile;
+
+    //if entry not found
+    if(inodeIndex==-1)then
+        R0=-1;
+        return;
+    endif;
+
+    backup;
+    R1=4; //acquire inode Function
+    R3=inodeIndex;
+    R2=[SYSTEM_STATUS_TABLE+1];
+    call MOD_0;
+    retVal = R0;
+    restore;
+
+    //locking failed
+    if(retVal==-1)then
+        R0=-1;
+        return;
+    endif;
+
+    if([INODE_TABLE+inodeIndex*16+0]==EXEC)then
+
+        backup;
+        R1=5; //release Inode function
+        R2=[SYSTEM_STATUS_TABLE+1];
+        R3=inodeIndex;
+        call MOD_0;
+        restore;
+
+        R0=-1;
+        return;
+    endif;
+
+    i =0;
+    freeOpenfileEntry=-1;
+    while(i<MAX_OPENFILE_NUM)do
+        if([OPEN_FILE_TABLE+4*i]==-1)then
+            freeOpenfileEntry=i;
+            break;
+        endif;
+        i=i+1;
+    endwhile;
+
+    // no free open file entry (reached maximum number of open files in the system)
+    if(freeOpenfileEntry==-1)then
+        backup;
+        R1=5; //release Inode function
+        R2=[SYSTEM_STATUS_TABLE+1];
+        R3=inodeIndex;
+        call MOD_0;
+        restore;
+        R0=-2;
+        return;
+    endif;
+
+    if(filename=="root")then
+        [OPEN_FILE_TABLE+4*freeOpenfileEntry+0]=INODE_ROOT;
+    else
+        if([FILE_STATUS_TABLE+inodeIndex*4+1]==-1)then
+            [FILE_STATUS_TABLE+inodeIndex*4+1]=1;
+        else 
+            [FILE_STATUS_TABLE+inodeIndex*4+1]=[FILE_STATUS_TABLE+inodeIndex*4+1]+1;
+        endif;
+        [OPEN_FILE_TABLE+4*freeOpenfileEntry+0]=inodeIndex;
+    endif;
+
+    [OPEN_FILE_TABLE+4*freeOpenfileEntry+1]=1;//OPEN INSTANCE COUNT
+    [OPEN_FILE_TABLE+4*freeOpenfileEntry+2]=0;//LSEEK
+
+    backup;
+    R1=5; //release Inode function
+    R2=[SYSTEM_STATUS_TABLE+1];
+    R3=inodeIndex;
+    call MOD_0;
+    restore;
+
+    R0 = freeOpenfileEntry;
+    return;
+
+endif;
+
+if(functionNum==4)then //close function
+
+    alias openFileTableIndex R2;
+    
+    inodeIndex = [OPEN_FILE_TABLE+4*openFileTableIndex+0];
+    [OPEN_FILE_TABLE+4*openFileTableIndex+1]=[OPEN_FILE_TABLE+4*openFileTableIndex+1]-1;
+
+    if([OPEN_FILE_TABLE+4*openFileTableIndex+1]==0)then
+        [OPEN_FILE_TABLE+4*openFileTableIndex+0]=-1;
+        [OPEN_FILE_TABLE+4*openFileTableIndex+1]=-1;
+        [OPEN_FILE_TABLE+4*openFileTableIndex+2]=-1;
+        if([INODE_TABLE+16*inodeIndex+1]!="root")then
+            [FILE_STATUS_TABLE+4*inodeIndex+1]=[FILE_STATUS_TABLE+4*inodeIndex+1]-1;
+        endif;
+        if([FILE_STATUS_TABLE+4*inodeIndex+1]==0)then
+            [FILE_STATUS_TABLE+4*inodeIndex+1]=-1;
+        endif;
+    endif;
+
+    return;
+
+endif;
+
