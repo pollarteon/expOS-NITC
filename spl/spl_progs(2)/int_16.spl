@@ -1,0 +1,266 @@
+//USER SYSCALLS
+
+alias userSP R0; 
+alias physicalPageNum R1;
+alias offset R2;
+alias Addr R3;
+alias syscallNo R4;
+alias userId R5;
+alias physicalAddrRetVal R6;
+alias username R7;
+alias check R8;
+alias i R9;
+alias password R10;
+alias temp R11;
+alias arg1addr R12;
+alias arg2addr R13;
+alias currPID R14;
+
+userSP=SP; 
+currPID=[SYSTEM_STATUS_TABLE+1];
+
+
+arg1addr = ([PTBR + 2 * ((userSP - 4)/ 512)] * 512) + (userSP - 4) % 512;
+arg2addr = ([PTBR + 2 * ((userSP - 3)/ 512)] * 512) + (userSP - 3) % 512;
+
+
+temp = PROCESS_TABLE + (currPID * 16);
+
+
+[temp + 13] = SP; 
+SP = [temp + 11] * 512 - 1;
+
+
+Addr = ([PTBR + 2 * ((userSP - 5)/ 512)] * 512) + (userSP - 5) % 512;
+syscallNo=[Addr];
+
+
+physicalAddrRetVal = ([PTBR + 2 * ((userSP - 1) / 512)] * 512) + ((userSP - 1) % 512);
+[temp + 9] = syscallNo;
+
+if(syscallNo==22) then   //NEW USER SYSTEM CALL
+	
+	userId = [temp+3];
+	if(userId!=1 || currPID!=2) then
+		[physicalAddrRetVal] = -2;
+		[temp + 9] = 0;
+		SP = userSP;
+		ireturn;
+	endif;
+
+	
+	username = [arg1addr];
+	password = [arg2addr];
+
+	// Checking if username already exists
+	check=-1;
+	i=0;
+	while(i<16) do
+		if([USER_TABLE+ 2*i] == username) then
+			check=0;
+			break;
+		endif;
+		i=i+1;
+	endwhile;
+
+
+	if(check==0) then
+		[physicalAddrRetVal] = -1;
+		[temp + 9] = 0;
+		SP = userSP;
+		ireturn;
+	endif;
+
+
+	check=-1;
+	i=0;
+	while(i<16) do
+		if([USER_TABLE+2*i]==-1) then
+			check=i;
+			break;
+		endif;
+		i=i+1;
+	endwhile;
+
+
+	if(check==-1) then
+		[physicalAddrRetVal] = -3;
+		[temp + 9] = 0;
+		SP = userSP;
+		ireturn;
+	endif;
+
+	
+	encrypt password;
+
+	[USER_TABLE+2*check]=username;
+	[USER_TABLE+2*check+1]=password;
+
+	[temp + 9] = 0;
+	[physicalAddrRetVal] = 0;
+	SP = [temp + 13];
+	ireturn;
+
+endif;
+
+if(syscallNo==23) then   //remusr syscall
+
+	
+	userId = [temp+3]; 
+	username = [arg1addr];
+
+	
+	if(userId!=1 || currPID!=2 || username=="root" || username == "kernel") then
+		[physicalAddrRetVal] = -2;
+		[temp + 9] = 0;
+		SP = userSP;
+		ireturn;
+	endif;
+
+
+	i=0;
+	check=-1;
+	while(i<16) do
+		if([USER_TABLE+2*i]==username) then
+			check=i;
+			userId=i;
+			break;
+		endif;
+		i=i+1;
+	endwhile;
+
+
+	if(check==-1) then
+		[physicalAddrRetVal] = -1;
+		[temp + 9] = 0;
+		SP = userSP;
+		ireturn;
+	endif;
+
+
+	
+	i=0;
+	check=-1;
+	while(i<60) do
+		if([ROOT_FILE+8*i+3]==username) then
+			check=0;
+			break;
+		endif;	
+		i=i+1;
+	endwhile;
+
+	if(check==0) then
+		[physicalAddrRetVal] = -3;
+		[temp + 9] = 0;
+		SP = userSP;
+		ireturn;
+	endif;
+
+
+	
+	[USER_TABLE+2*userId]=-1;
+	[USER_TABLE+2*userId+1]=-1;
+
+	[temp+ 9] = 0;
+	[physicalAddrRetVal] = 0;
+	SP = [temp + 13];
+	ireturn;
+
+endif;
+
+if(syscallNo==24) then  //SET PWD system call
+
+	username = [arg1addr];
+	password = [arg2addr];
+
+
+	//Finding the entry corresponding to username
+	i=0;
+	userId=-1;
+	while(i<16) do
+		if([USER_TABLE+2*i]==username) then
+			userId=i;
+			break;
+		endif;
+		i=i+1;
+	endwhile;
+
+	//if entry not fuond then return -2
+	if(userId==-1) then
+		[physicalAddrRetVal] = -2;
+		[temp + 9] = 0;
+		SP = userSP;
+		ireturn;
+	endif;
+
+	
+
+	// if current process is not shell or if user tries to change some other user's password
+	
+
+	if(currPID!=2 || (([temp+3]!=userId) && ([temp+3]!=1))) then
+		[physicalAddrRetVal] = -1;
+		[temp + 9] = 0;
+		SP = userSP;
+		ireturn;
+	endif;
+
+	encrypt password;
+	[USER_TABLE+2*userId+1]=password;
+	[temp + 9] = 0;
+	[physicalAddrRetVal] = 0;
+	SP = [temp + 13];
+	ireturn;
+
+endif;
+
+if(syscallNo==25) then //getusr syscall
+	
+
+	userId = [arg1addr];
+	if(userId<0 || userId>15) then
+		[physicalAddrRetVal] = -1;
+		[temp + 9] = 0;
+		SP = userSP;
+		ireturn;
+	endif;
+
+	//If usertable entry correspondng to given userid is invalid, then return -1
+	if([USER_TABLE+2*userId]==-1) then
+		[physicalAddrRetVal] = -1;
+		[temp + 9] = 0;
+		SP = userSP;
+		ireturn;
+	endif;
+
+	
+	username = [USER_TABLE+2*userId];
+
+	
+	[temp+ 9] = 0;
+	[physicalAddrRetVal] = username;
+	SP = [temp + 13];
+	ireturn;
+
+endif;
+
+if(syscallNo==26) then  // getuid system call
+	
+	username = [arg1addr];
+	userId=-1;
+
+
+	i=0;
+	while(i<16) do
+		if([USER_TABLE+2*i]==username) then
+			userId=i;
+			break;
+		endif;
+		i=i+1;
+	endwhile;
+	
+	[temp + 9] = 0;
+	[physicalAddrRetVal] = userId;
+	SP = [temp + 13];
+	ireturn;
+endif;

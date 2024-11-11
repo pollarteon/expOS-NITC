@@ -1,0 +1,48 @@
+// LOGOUT SYATEM CALL
+
+alias userSP R0; 
+alias physicalAddrRetVal R1;
+
+userSP = SP;
+physicalAddrRetVal = ([PTBR + 2 * ((userSP - 1) / 512)] * 512) + ((userSP - 1) % 512);
+
+
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP; 
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1; 
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 28;
+
+
+if([SYSTEM_STATUS_TABLE+1]!=2) then
+
+	[physicalAddrRetVal] = -1;
+	[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+	SP = userSP;
+	ireturn;
+endif;
+
+// Kill all function Process Manager Module
+backup;
+	R1=5;
+	R2=[SYSTEM_STATUS_TABLE+1];
+	call MOD_1;
+restore;
+
+
+
+[PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE+1]+4]=TERMINATED;
+
+//pushing IP (entry point) of shell process to the userStack fromt the header of shell process;
+alias entry_point R14;
+alias temp R13;
+temp = PAGE_TABLE_BASE+40;
+entry_point = [[temp+8]*512+1];
+
+[[temp+16]*512] = entry_point;
+[PROCESS_TABLE+16*2+13]=8*512;
+
+
+
+[PROCESS_TABLE+16*1+4]=READY;
+
+//Invoke Scheduler
+call MOD_5;

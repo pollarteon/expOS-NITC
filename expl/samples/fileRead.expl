@@ -1,0 +1,23 @@
+int main() 
+{
+decl
+	int b,c,filedesc;
+	str filename,out;
+enddecl
+
+begin
+    read(filename);
+	filedesc = exposcall("Open",filename);
+
+    if(filedesc<0)then
+        write("open failed");
+        write(filedesc);
+    endif;
+	b=exposcall("Read",filedesc,out);
+    write(out);
+    c=exposcall("Close",filedesc);
+    write(c);
+
+	return 0;
+end
+}

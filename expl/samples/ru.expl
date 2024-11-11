@@ -1,0 +1,17 @@
+int main(){
+decl
+int i,temp;
+int uname;
+enddecl
+begin
+	i=2;
+	while(i<16)do
+		uname=exposcall("Getuname",i);
+		if(uname!=-1)then
+			temp=exposcall("Remusr",uname);
+		endif;
+		i=i+1;
+	endwhile;
+	return 0;
+end
+}
